@@ -1,4 +1,4 @@
 Unduplicator
-============
+------------
 
-Powershell scripts that find same content files to delete them
+Powershell script that quickly finds files with identical content and allows to delete duplicates.
