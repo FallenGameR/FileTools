@@ -2,13 +2,23 @@ function Get-HashGroups
 {
     $files = ls -Recurse 2>$null | where{ -not $_.PSIsContainer }
     $sameLength = $files | group Length | where{ $_.Count -gt 1 } | take Group
-    $hashGroups = $sameLength | group { if( $_.Length -gt 100Kb ) { git.exe hash-object $_.FullName } else { Get-Md5 $_.FullName } } | where{ $_.Count -gt 1 }
+    $hashGroups = $sameLength | group { sha1 $_.FullName } | where{ $_.Count -gt 1 }
     $hashGroups
 }
 
+function sha1( [string] $absolutePath )
+{
+    $stream = New-Object IO.FileStream ($absolutePath, [IO.FileMode]::Open, [IO.FileAccess]::Read)
+    [Convert]::ToBase64String([Security.Cryptography.SHA1]::Create().ComputeHash($stream))
+    $stream.Close()
+}
 
-git cant handle cyrilic letters in paths. try implement sha1 implementation in .net
-
+function md5( [string] $absolutePath )
+{
+    $stream = New-Object IO.FileStream ($absolutePath, [IO.FileMode]::Open, [IO.FileAccess]::Read)
+    [Convert]::ToBase64String([Security.Cryptography.MD5]::Create().ComputeHash($stream))
+    $stream.Close()
+}
 
 
 $hashGroups = Get-HashGroups
