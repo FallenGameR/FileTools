@@ -32,5 +32,19 @@ function Get-FileSize( [Int64] $length )
     $sb.ToString()
 }
 
-$hashGroups = Get-HashGroups
+filter Get-Files( [string] $hash )
+{
+    if( $_.Hash -eq $hash )
+    {
+        $_.Files | take FullName
+    }
+}
 
+filter Update-Files
+{
+    $_.Files = $_.Files | where{ Test-Path $_.FullName }
+}
+
+$hashGroups = Get-HashGroups
+$hashGroups | Get-Files 6dbCllePDWQ0bHZOfhIORg==
+$hashGroups | Update-Files
