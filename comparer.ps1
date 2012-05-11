@@ -13,6 +13,14 @@ function Get-HashGroups
             Files = $_.Group
         } | select Id, Count, Extra, Files
     }
+
+    $hashGroups |
+        select `
+            Count,
+            @{ Name = "Hash"; Expression = {$_.Name} },
+            @{ Name = "Extra"; Expression = {$_.Group[0].Length * ($_.Count - 1)} },
+            @{ Name = "Files"; Expression = {$_.Group} } |
+        sort Extra -Descending
 }
 
 function md5( [string] $absolutePath )
@@ -20,19 +28,6 @@ function md5( [string] $absolutePath )
     $stream = New-Object IO.FileStream ($absolutePath, [IO.FileMode]::Open, [IO.FileAccess]::Read)
     [Convert]::ToBase64String([Security.Cryptography.MD5]::Create().ComputeHash($stream))
     $stream.Close()
-}
-
-filter Get-Objects
-{
-    $count = $_.Count
-    $files = $_.Group
-    $extra = $_.Group[0].Length * ($_.Count - 1)
-    New-Object PsObject -Property @{
-        Id = 0
-        Count = $count
-        Extra = $extra
-        Files = $files
-    } | select Id, Count, ExtraMb, Files
 }
 
 $hashGroups = Get-HashGroups
