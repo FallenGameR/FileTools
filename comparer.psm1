@@ -4,15 +4,15 @@ $SCRIPT:nativeMethods = Add-Type -PassThru -Name "Win32Api" -MemberDefinition @"
 "@
 $SCRIPT:hashGroups = @()
 
+function md5( [string] $absolutePath )
+{
+    $stream = New-Object IO.FileStream ($absolutePath, [IO.FileMode]::Open, [IO.FileAccess]::Read)
+    [Convert]::ToBase64String([Security.Cryptography.MD5]::Create().ComputeHash($stream))
+    $stream.Close()
+}
+
 function hash
 {
-    function md5( [string] $absolutePath )
-    {
-        $stream = New-Object IO.FileStream ($absolutePath, [IO.FileMode]::Open, [IO.FileAccess]::Read)
-        [Convert]::ToBase64String([Security.Cryptography.MD5]::Create().ComputeHash($stream))
-        $stream.Close()
-    }
-
     function size( [Int64] $length )
     {
         $sb = New-Object Text.StringBuilder 16
@@ -48,6 +48,17 @@ function get( [string] $hash )
 function files( [string] $hash )
 {
     get $hash | take Files | take FullName
+}
+
+function stat( [string] $folder )
+{
+    $stat = if( -not $folder ) { pwd } else { $folder }
+
+    $files = ls $stat 2>$null | where{ -not $_.PSIsContainer } 
+    
+# calculate md5 for each file
+# find how many repetitions there are for each file
+# output in a table
 }
 
 function update
