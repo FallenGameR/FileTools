@@ -115,6 +115,14 @@ function update
     $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 }
 }
 
+function exclude( [string] $hash )
+{
+    $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Hash -ne $hash }
+
+# TODO: Exclude by folder root
+}
+
+
 <#
 start
 get
