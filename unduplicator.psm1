@@ -66,14 +66,24 @@ function hash
 
 function get( [string] $hash )
 {
-    if( $hash )
+    if( -not $hash )
     {
-        $SCRIPT:hashGroups | where{ $_.Hash -eq $hash }
+        return $SCRIPT:hashGroups
+    }
+
+    $limit = -1
+    $isLimit = [int]::TryParse( $hash, [ref] $limit )
+
+    if( $isLimit )
+    {
+        $SCRIPT:hashGroups | select -first $limit
     }
     else
     {
-        $SCRIPT:hashGroups
+        $SCRIPT:hashGroups | where{ $_.Hash -eq $hash }
     }
+
+# TODO: Check for hash length instead
 }
 
 function files( [string] $hash )
