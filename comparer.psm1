@@ -50,15 +50,23 @@ function files( [string] $hash )
     get $hash | take Files | take FullName
 }
 
-function stat( [string] $folder )
-{
-    $stat = if( -not $folder ) { pwd } else { $folder }
 
-    $files = ls $stat 2>$null | where{ -not $_.PSIsContainer } 
-    
-# calculate md5 for each file
-# find how many repetitions there are for each file
-# output in a table
+function lsx( [string] $folder )
+{
+    $folder = if( -not $folder ) { pwd } else { $folder }
+    $files = ls $folder 2>$null | where{ -not $_.PSIsContainer } 
+
+    foreach( $file in $files )
+    {
+        $hash = md5 $file.FullName
+        $group = get $hash
+
+        New-Object PsObject -Property @{
+            Length = $file.Length
+            Count = if( $group ) { $group.Files.Length } else { 1 }
+            Name = $file.FullName
+        } | select Count, Length, Name
+    }
 }
 
 function update
