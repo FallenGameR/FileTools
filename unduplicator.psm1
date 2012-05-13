@@ -1,8 +1,34 @@
-$SCRIPT:nativeMethods = Add-Type -PassThru -Name "Win32Api" -MemberDefinition @"
-    [DllImport("Shlwapi.dll", CharSet = CharSet.Auto)]
-    public static extern long StrFormatByteSize( long fileSize, System.Text.StringBuilder buffer, int bufferSize );
-"@
 $SCRIPT:hashGroups = @()
+
+Add-Type -Language CSharpVersion3 @"
+namespace Unduplicator
+{
+    using System;
+    using System.Runtime.InteropServices;
+
+    public static class NativeMethods
+    {
+        [DllImport("Shlwapi.dll", CharSet = CharSet.Auto)]
+        public static extern long StrFormatByteSize( long fileSize, System.Text.StringBuilder buffer, int bufferSize );
+    }
+    
+    public class HashGroup
+    {
+        public int Count {get;set;}
+        public string Hash {get;set;}
+        public ulong Extra {get;set;}
+        public string Size {get;set;}
+        public object[] Files {get;set;}
+    }  
+
+    public class DuplicatedFile
+    {
+        public ulong Length {get;set;}
+        public int Count {get;set;}
+        public string Name {get;set;}
+    }
+}
+"@
 
 function md5( [string] $absolutePath )
 {
@@ -16,20 +42,25 @@ function hash
     function size( [Int64] $length )
     {
         $sb = New-Object Text.StringBuilder 16
-        $SCRIPT:nativeMethods::StrFormatByteSize( $length, $sb, $sb.Capacity ) | Out-Null
+        [Unduplicator.NativeMethods]::StrFormatByteSize( $length, $sb, $sb.Capacity ) | Out-Null
         $sb.ToString()
     }
 
     $files = ls -Recurse 2>$null | where{ -not $_.PSIsContainer }
     $sameLength = $files | group Length | where{ $_.Count -gt 1 } | take Group
     $hashGroups = $sameLength | group { md5 $_.FullName } | where{ $_.Count -gt 1 }
-    $SCRIPT:hashGroups = $hashGroups |
-        select `
-            Count,
-            @{ Name = "Hash";  Expression = {$_.Name} },
-            @{ Name = "Extra"; Expression = {$_.Group[0].Length * ($_.Count - 1)} },
-            @{ Name = "Size";  Expression = {size ($_.Group[0].Length * ($_.Count - 1)) } },
-            @{ Name = "Files"; Expression = {$_.Group} } |
+    if( -not $hashGroups ) { return }
+
+    $SCRIPT:hashGroups = $hashGroups | 
+        foreach{
+            New-Object Unduplicator.HashGroup -Property @{
+                Count = $_.Count
+                Hash = $_.Name
+                Extra = $_.Group[0].Length * ($_.Count - 1)
+                Size = size ($_.Group[0].Length * ($_.Count - 1))
+                Files = $_.Group
+            }
+        } |
         sort Extra -Descending
 }
 
@@ -50,7 +81,6 @@ function files( [string] $hash )
     get $hash | take Files | take FullName
 }
 
-
 function lsx( [string] $folder )
 {
     $folder = if( -not $folder ) { pwd } else { $folder }
@@ -61,11 +91,11 @@ function lsx( [string] $folder )
         $hash = md5 $file.FullName
         $group = get $hash
 
-        New-Object PsObject -Property @{
+        New-Object Unduplicator.DuplicatedFile -Property @{
             Length = $file.Length
             Count = if( $group ) { $group.Files.Length } else { 1 }
             Name = $file.FullName
-        } | select Count, Length, Name
+        }
     }
 }
 

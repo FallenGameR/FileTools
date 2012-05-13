@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- Update-FormatData -->
+<Configuration>
+    <ViewDefinitions>
+        <View>
+            <Name>Unduplicator.HashGroup</Name>
+            <ViewSelectedBy>
+                <TypeName>Unduplicator.HashGroup</TypeName>
+                <TypeName>CSV:Unduplicator.HashGroup</TypeName>
+            </ViewSelectedBy>           
+            <TableControl>
+                <AutoSize/>
+				<TableHeaders>
+                    <TableColumnHeader />
+                    <TableColumnHeader />
+                    <TableColumnHeader />
+                    <TableColumnHeader />
+                    <TableColumnHeader />
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Hash</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Count</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Extra</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Size</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Files</PropertyName>
+                            </TableColumnItem>
+						</TableColumnItems>							
+					</TableRowEntry>
+				</TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>Unduplicator.DuplicatedFile</Name>
+            <ViewSelectedBy>
+                <TypeName>Unduplicator.DuplicatedFile</TypeName>
+                <TypeName>CSV:Unduplicator.DuplicatedFile</TypeName>
+            </ViewSelectedBy>           
+            <TableControl>
+                <AutoSize/>
+				<TableHeaders>
+                    <TableColumnHeader />
+                    <TableColumnHeader />
+                    <TableColumnHeader />
+				</TableHeaders>
+				<TableRowEntries>
+					<TableRowEntry>
+						<TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>Length</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Count</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>Name</PropertyName>
+                            </TableColumnItem>
+						</TableColumnItems>							
+					</TableRowEntry>
+				</TableRowEntries>
+            </TableControl>
+        </View>
+    </ViewDefinitions>
+</Configuration>
