@@ -64,26 +64,26 @@ function hash
         sort Extra -Descending
 }
 
+function isHash( [string] $hash )
+{
+    $hash -and ($hash.Length -eq 24) -and $hash.EndsWith("==")
+}
+
 function get( [string] $hash )
 {
     if( -not $hash )
     {
-        return $SCRIPT:hashGroups
+        $SCRIPT:hashGroups
     }
-
-    $limit = -1
-    $isLimit = [int]::TryParse( $hash, [ref] $limit )
-
-    if( $isLimit )
+    elseif( isHash $hash )
     {
-        $SCRIPT:hashGroups | select -first $limit
+        $SCRIPT:hashGroups | where{ $_.Hash -eq $hash }        
     }
     else
     {
-        $SCRIPT:hashGroups | where{ $_.Hash -eq $hash }
+        $limit = [int] $hash
+        $SCRIPT:hashGroups | select -first $limit
     }
-
-# TODO: Check for hash length instead
 }
 
 function files( [string] $hash )
@@ -117,11 +117,16 @@ function update
 
 function exclude( [string] $hash )
 {
-    $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Hash -ne $hash }
-
-# TODO: Exclude by folder root
+    if( isHash $hash )
+    {
+        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Hash -ne $hash }
+    }
+    else
+    {
+        $SCRIPT:hashGroups | foreach{ $_.Files = @($_.Files | where{ -not $_.FullName.StartsWith($hash) } ) }
+        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 }
+    }
 }
-
 
 <#
 start
