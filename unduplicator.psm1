@@ -116,7 +116,7 @@ function files( [string] $hash )
 function lsx( [string] $folder )
 {
     $folder = if( -not $folder ) { pwd } else { $folder }
-    $files = ls $folder 2>$null | where{ $_} 
+    $files = ls $folder 2>$null 
 
     foreach( $file in $files )
     {
@@ -137,6 +137,7 @@ function lsx( [string] $folder )
                 Length = 0
                 Count = 0
                 Name = $file.FullName
+            }
         }
     }
 }
@@ -196,3 +197,4 @@ delete ...
 update
 get
 #>
+
