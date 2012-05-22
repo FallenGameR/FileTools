@@ -58,12 +58,8 @@ function load( [string] $file )
 
         if( (-not $line) -and ($files.Count -gt 1) )
         {
-            New-Object Unduplicator.HashGroup -Property @{
-                Count = $files.Count
-                Hash = $hash
-                Extra = $files[0].Length * ($files.Count - 1)
-                Size = size ($files[0].Length * ($files.Count - 1))
-                Files = $files }
+            $item = New-Object Unduplicator.HashGroup -Property @{ Hash = $hash; Files = $files }
+            recalc $item 
             $hash = ""
             $files = @()
             continue
@@ -74,6 +70,18 @@ function load( [string] $file )
             $files += gi $line
         }
     }
+}
+
+function recalc( $item )
+{
+    $files = $item.Files
+    $extra = $files[0].Length * ($files.Count - 1)
+
+    $item.Count = $files.Count
+    $item.Extra = $extra
+    $item.Size = size $extra
+
+    $item
 }
 
 function md5( [string] $absolutePath )
@@ -99,13 +107,8 @@ function hash
 
     $SCRIPT:hashGroups = $hashGroups | 
         foreach{
-            New-Object Unduplicator.HashGroup -Property @{
-                Count = $_.Count
-                Hash = $_.Name
-                Extra = $_.Group[0].Length * ($_.Count - 1)
-                Size = size ($_.Group[0].Length * ($_.Count - 1))
-                Files = $_.Group
-            }
+            $item = New-Object Unduplicator.HashGroup -Property @{ Hash = $_.Name; Files = $_.Group }
+            recalc $item
         } |
         sort Extra -Descending
 }
@@ -219,7 +222,7 @@ function exclude( [string] $hash )
     else
     {
         $SCRIPT:hashGroups | foreach{ $_.Files = @($_.Files | where{ -not $_.FullName.StartsWith($hash) } ) }
-        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 }
+        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 } | sort Extra -Descending
     }
 }
 
