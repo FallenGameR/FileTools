@@ -30,6 +30,52 @@ namespace Unduplicator
 }
 "@
 
+function save( [string] $file )
+{
+    $null | sc $file
+
+    foreach( $item in $SCRIPT:hashGroups )
+    {
+        $item.Hash | ac $file    
+        $item.Files | take FullName | ac $file
+        "" | ac $file   
+    }
+}
+
+function load( [string] $file )
+{
+    $text = gc $file
+    $hash = ""
+    $files = @()
+
+    $SCRIPT:hashGroups = foreach( $line in $text )
+    {
+        if( -not $hash )
+        {
+            $hash = $line
+            continue
+        }
+
+        if( (-not $line) -and ($files.Count -gt 1) )
+        {
+            New-Object Unduplicator.HashGroup -Property @{
+                Count = $files.Count
+                Hash = $hash
+                Extra = $files[0].Length * ($files.Count - 1)
+                Size = size ($files[0].Length * ($files.Count - 1))
+                Files = $files }
+            $hash = ""
+            $files = @()
+            continue
+        }
+      
+        if( Test-Path $line )
+        { 
+            $files += gi $line
+        }
+    }
+}
+
 function md5( [string] $absolutePath )
 {
     $stream = New-Object IO.FileStream ($absolutePath, [IO.FileMode]::Open, [IO.FileAccess]::Read)
@@ -37,15 +83,15 @@ function md5( [string] $absolutePath )
     $stream.Close()
 }
 
+function size( [Int64] $length )
+{
+    $sb = New-Object Text.StringBuilder 16
+    [Unduplicator.NativeMethods]::StrFormatByteSize( $length, $sb, $sb.Capacity ) | Out-Null
+    $sb.ToString()
+}
+
 function hash
 {
-    function size( [Int64] $length )
-    {
-        $sb = New-Object Text.StringBuilder 16
-        [Unduplicator.NativeMethods]::StrFormatByteSize( $length, $sb, $sb.Capacity ) | Out-Null
-        $sb.ToString()
-    }
-
     $files = ls -Recurse 2>$null | where{ -not $_.PSIsContainer }
     $sameLength = $files | group Length | where{ $_.Count -gt 1 } | take Group
     $hashGroups = $sameLength | group { md5 $_.FullName } | where{ $_.Count -gt 1 }
@@ -91,12 +137,41 @@ function get( [string] $hash )
     }
 }
 
-function files( [string] $hash )
+function file( [string] $hash )
 {
 # argument could be:
 # - hash: return files that belong to hash
 # - empty: return duplicate files that belong to current folder
 # - folder: return duplicate files that belong to specified path
+
+    function lsx( [string] $folder )
+    {
+        $folder = if( -not $folder ) { pwd } else { $folder }
+        $files = ls $folder 2>$null 
+
+        foreach( $file in $files )
+        {
+            if( -not $file.PSIsContainer )
+            {
+                $hash = md5 $file.FullName
+                $group = get $hash
+
+                New-Object Unduplicator.DuplicatedFile -Property @{
+                    Length = $file.Length
+                    Count = if( $group ) { $group.Files.Length } else { 1 }
+                    Name = $file.FullName
+                }
+            }
+            else
+            {
+                New-Object Unduplicator.DuplicatedFile -Property @{
+                    Length = 0
+                    Count = 0
+                    Name = $file.FullName
+                }
+            }
+        }
+    }
 
     if( isHash $hash )
     {
@@ -111,35 +186,6 @@ function files( [string] $hash )
     {
         lsx $hash
     }    
-}
-
-function lsx( [string] $folder )
-{
-    $folder = if( -not $folder ) { pwd } else { $folder }
-    $files = ls $folder 2>$null 
-
-    foreach( $file in $files )
-    {
-        if( -not $file.PSIsContainer )
-        {
-            $hash = md5 $file.FullName
-            $group = get $hash
-
-            New-Object Unduplicator.DuplicatedFile -Property @{
-                Length = $file.Length
-                Count = if( $group ) { $group.Files.Length } else { 1 }
-                Name = $file.FullName
-            }
-        }
-        else
-        {
-            New-Object Unduplicator.DuplicatedFile -Property @{
-                Length = 0
-                Count = 0
-                Name = $file.FullName
-            }
-        }
-    }
 }
 
 function update( [string] $prefix )
@@ -157,7 +203,7 @@ function update( [string] $prefix )
         $SCRIPT:hashGroups | foreach{ $_.Files = @($_.Files | where{ Test-Path $_.FullName }) }
     }
 
-    $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 }
+    $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 } | sort Extra -Descending
 }
 
 function exclude( [string] $hash )
@@ -175,16 +221,6 @@ function exclude( [string] $hash )
         $SCRIPT:hashGroups | foreach{ $_.Files = @($_.Files | where{ -not $_.FullName.StartsWith($hash) } ) }
         $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 }
     }
-}
-
-function save( [string] $file )
-{
-    $SCRIPT:hashGroups | Export-Clixml $file
-}
-
-function load( [string] $file )
-{
-    $SCRIPT:hashGroups = Import-Clixml $file
 }
 
 <#
