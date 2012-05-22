@@ -141,7 +141,7 @@ function get( [string] $hash )
     }
 }
 
-function file( [string] $hash )
+function file
 {
 # argument could be:
 # - hash: return files that belong to hash
@@ -176,20 +176,19 @@ function file( [string] $hash )
             }
         }
     }
+    
+    if( $args.Count -eq 0 )
+    {
+        return lsx (pwd)
+    }
 
+    $hash = $args[0]
     if( isHash $hash )
     {
         return get $hash | take Files | take FullName
     }
    
-    if( -not $hash )
-    {
-        lsx (pwd)
-    }
-    else
-    {
-        lsx $hash
-    }    
+    lsx ($args -join " ")
 }
 
 function update( [string] $prefix )
