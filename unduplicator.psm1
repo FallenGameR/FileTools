@@ -60,6 +60,8 @@ function load( [string] $file )
         {
             $item = New-Object Unduplicator.HashGroup -Property @{ Hash = $hash; Files = $files }
             recalc $item 
+            $item
+
             $hash = ""
             $files = @()
             continue
@@ -80,8 +82,6 @@ function recalc( $item )
     $item.Count = $files.Count
     $item.Extra = $extra
     $item.Size = size $extra
-
-    $item
 }
 
 function md5( [string] $absolutePath )
@@ -109,6 +109,7 @@ function hash
         foreach{
             $item = New-Object Unduplicator.HashGroup -Property @{ Hash = $_.Name; Files = $_.Group }
             recalc $item
+            $item
         } |
         sort Extra -Descending
 }
@@ -197,13 +198,25 @@ function update( [string] $prefix )
 # empty - update all hash groups
 # file path - update hash groups that start with that prefix
 
+    $updateFiles = 
+    {
+        $originalLength = $_.Files.Count
+        $_.Files = @($_.Files | where{ Test-Path $_.FullName })
+        $updatedLength = $_.Files.Count 
+
+        if( $originalLength -ne $updatedLength )
+        {
+            recalc $_
+        }
+    }
+
     if( $prefix )
     {
-        $SCRIPT:hashGroups | where{ $_.Files | where{ $_.FullName.StartsWith($prefix) } } | foreach{ $_.Files = @($_.Files | where{ Test-Path $_.FullName }) }
+        $SCRIPT:hashGroups | where{ $_.Files | where{ $_.FullName.StartsWith($prefix) } } | foreach $updateFiles
     }
     else
     {
-        $SCRIPT:hashGroups | foreach{ $_.Files = @($_.Files | where{ Test-Path $_.FullName }) }
+        $SCRIPT:hashGroups | foreach $updateFiles
     }
 
     $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 } | sort Extra -Descending
@@ -215,13 +228,25 @@ function exclude( [string] $hash )
 # hash - exclude selected hash 
 # folder - exclude paths that start with that prefix
 
+    $excludeFiles = 
+    {
+        $originalLength = $_.Files.Count
+        $_.Files = @($_.Files | where{ -not $_.FullName.StartsWith($hash) } ) 
+        $updatedLength = $_.Files.Count 
+
+        if( $originalLength -ne $updatedLength )
+        {
+            recalc $_
+        }
+    }
+
     if( isHash $hash )
     {
         $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Hash -ne $hash }
     }
     else
     {
-        $SCRIPT:hashGroups | foreach{ $_.Files = @($_.Files | where{ -not $_.FullName.StartsWith($hash) } ) }
+        $SCRIPT:hashGroups | foreach $excludeFiles
         $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 } | sort Extra -Descending
     }
 }
