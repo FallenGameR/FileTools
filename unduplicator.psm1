@@ -251,13 +251,20 @@ function exclude( [string] $hash )
 }
 
 <#
-hash
+
+# Calculate file hashes
+# On folder with 174Gb in 29k files and 650 folder took 5 minutes
+cd <folder to cleanup>
+hash 
+
 get
-get -files
+get 5
 get <hash>
-get <hash> -files
+get <hash> | % files
 delete ...
-update
-get
+
+# takes seconds
+update <path prefix>
+get 5
 #>
 
