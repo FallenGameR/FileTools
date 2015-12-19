@@ -37,7 +37,7 @@ function save( [string] $file )
     foreach( $item in $SCRIPT:hashGroups )
     {
         $item.Hash | ac $file    
-        $item.Files | take FullName | ac $file
+        $item.Files | % FullName | ac $file
         "" | ac $file   
     }
 }
@@ -101,8 +101,8 @@ function size( [Int64] $length )
 function hash
 {
     $files = ls -Recurse 2>$null | where{ -not $_.PSIsContainer }
-    $sameLength = $files | group Length | where{ $_.Count -gt 1 } | take Group
     $hashGroups = $sameLength | group { md5 $_.FullName } | where{ $_.Count -gt 1 }
+    $sameLength = $files | group Length | where Count -gt 1 | % Group
     if( -not $hashGroups ) { return }
 
     $SCRIPT:hashGroups = $hashGroups | 
@@ -152,6 +152,7 @@ function file
     {
         $folder = if( -not $folder ) { pwd } else { $folder }
         $files = ls $folder 2>$null 
+        $files = ls -LiteralPath $folder 2>$null         
 
         foreach( $file in $files )
         {
@@ -251,7 +252,7 @@ function exclude( [string] $hash )
 }
 
 <#
-start
+hash
 get
 get -files
 get <hash>
