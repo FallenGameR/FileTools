@@ -100,14 +100,14 @@ function size( [Int64] $length )
 
 function hash
 {
-    $files = ls -Recurse 2>$null | where{ -not $_.PSIsContainer }
-    $hashGroups = $sameLength | group { md5 $_.FullName } | where{ $_.Count -gt 1 }
+    $files = ls -Recurse 2>$null | where{ -not $psitem.PSIsContainer }
     $sameLength = $files | group Length | where Count -gt 1 | % Group
+    $hashGroups = $sameLength | group { md5 $psitem.FullName } | where Count -gt 1 
     if( -not $hashGroups ) { return }
 
     $SCRIPT:hashGroups = $hashGroups | 
         foreach{
-            $item = New-Object Unduplicator.HashGroup -Property @{ Hash = $_.Name; Files = $_.Group }
+            $item = New-Object Unduplicator.HashGroup -Property @{ Hash = $psitem.Name; Files = $psitem.Group }
             recalc $item
             $item
         } |
@@ -132,7 +132,7 @@ function get( [string] $hash )
     }
     elseif( isHash $hash )
     {
-        $SCRIPT:hashGroups | where{ $_.Hash -eq $hash }        
+        $SCRIPT:hashGroups | where Hash -eq $hash
     }
     else
     {
@@ -151,7 +151,6 @@ function file
     function lsx( [string] $folder )
     {
         $folder = if( -not $folder ) { pwd } else { $folder }
-        $files = ls $folder 2>$null 
         $files = ls -LiteralPath $folder 2>$null         
 
         foreach( $file in $files )
@@ -200,26 +199,26 @@ function update( [string] $prefix )
 
     $updateFiles = 
     {
-        $originalLength = $_.Files.Count
-        $_.Files = @($_.Files | where{ Test-Path $_.FullName })
-        $updatedLength = $_.Files.Count 
+        $originalLength = $psitem.Files.Count
+        $psitem.Files = @($psitem.Files | where{ Test-Path $psitem.FullName })
+        $updatedLength = $psitem.Files.Count 
 
         if( $originalLength -ne $updatedLength )
         {
-            recalc $_
+            recalc $psitem
         }
     }
 
     if( $prefix )
     {
-        $SCRIPT:hashGroups | where{ $_.Files | where{ $_.FullName.StartsWith($prefix) } } | foreach $updateFiles
+        $SCRIPT:hashGroups | where{ $psitem.Files | where{ $psitem.FullName.StartsWith($prefix) } } | foreach $updateFiles
     }
     else
     {
         $SCRIPT:hashGroups | foreach $updateFiles
     }
 
-    $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 } | sort Extra -Descending
+    $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $psitem.Files.Length -gt 1 } | sort Extra -Descending
 }
 
 function exclude( [string] $hash )
@@ -230,24 +229,24 @@ function exclude( [string] $hash )
 
     $excludeFiles = 
     {
-        $originalLength = $_.Files.Count
-        $_.Files = @($_.Files | where{ -not $_.FullName.StartsWith($hash) } ) 
-        $updatedLength = $_.Files.Count 
+        $originalLength = $psitem.Files.Count
+        $psitem.Files = @($psitem.Files | where{ -not $psitem.FullName.StartsWith($hash) } ) 
+        $updatedLength = $psitem.Files.Count 
 
         if( $originalLength -ne $updatedLength )
         {
-            recalc $_
+            recalc $psitem
         }
     }
 
     if( isHash $hash )
     {
-        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Hash -ne $hash }
+        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where Hash -ne $hash
     }
     else
     {
         $SCRIPT:hashGroups | foreach $excludeFiles
-        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $_.Files.Length -gt 1 } | sort Extra -Descending
+        $SCRIPT:hashGroups = $SCRIPT:hashGroups | where{ $psitem.Files.Length -gt 1 } | sort Extra -Descending
     }
 }
 
